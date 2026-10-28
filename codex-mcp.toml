@@ -1,0 +1,9 @@
+[mcp_servers.yandex-calendar]
+command = "/absolute/path/to/yandex-calendar-mcp/scripts/run.sh"
+args = []
+enabled_tools = ["list_calendars", "list_events", "prepare_event_change", "apply_event_change"]
+startup_timeout_sec = 30
+tool_timeout_sec = 180
+
+[mcp_servers.yandex-calendar.tools.apply_event_change]
+approval_mode = "prompt"

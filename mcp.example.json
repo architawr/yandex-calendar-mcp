@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "yandex-calendar": {
+      "command": "/absolute/path/to/yandex-calendar-mcp/scripts/run.sh",
+      "args": []
+    }
+  }
+}

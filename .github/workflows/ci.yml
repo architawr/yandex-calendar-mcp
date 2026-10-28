@@ -1,0 +1,31 @@
+name: Проверки
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    name: Тесты и сборка
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Установить uv
+        run: python -m pip install uv
+      - name: Установить зависимости
+        run: uv sync --locked --python '${{ matrix.python }}'
+      - name: Проверить
+        run: uv run --locked pytest -q
+      - name: Собрать
+        run: uv build
+      - name: Проверить состав публикации
+        run: uv run --locked python scripts/check_publication.py
