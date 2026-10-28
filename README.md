@@ -34,6 +34,64 @@ uv sync --locked
 
 В `config.local.json` сохраняются только несекретные настройки аккаунта. Этот файл и резервные копии исключены из Git и публикуемых пакетов. Не добавляйте их в Git принудительно.
 
+### Установка как пакета (без запуска из репозитория)
+
+Для повседневного использования удобнее установленный пакет, а не рабочая копия: сервер не зависит от `.venv` и текущей ветки. Исполняемый файл называется `yandex-calendar-mcp`.
+
+**Через uvx, без клонирования.** Конфиг передаётся переменной `YANDEX_CALENDAR_CONFIG` (см. ниже), потому что по умолчанию сервер ищет `config.local.json` в текущей папке, а при запуске клиентом она заранее неизвестна.
+
+```sh
+mkdir -p ~/.config/yandex-calendar-mcp
+export YANDEX_CALENDAR_CONFIG=~/.config/yandex-calendar-mcp/config.json
+uvx --from git+https://github.com/architawr/yandex-calendar-mcp yandex-calendar-mcp credentials
+```
+
+Запуск сервера клиентом: `uvx --from git+https://github.com/architawr/yandex-calendar-mcp yandex-calendar-mcp serve`. Для воспроизводимости закрепите версию: `git+https://github.com/architawr/yandex-calendar-mcp@<тег или коммит>`. Регистрация в клиенте с переменной окружения, например для Claude Code:
+
+```sh
+claude mcp add --scope user --transport stdio \
+  --env YANDEX_CALENDAR_CONFIG="$HOME/.config/yandex-calendar-mcp/config.json" \
+  yandex-calendar -- uvx --from git+https://github.com/architawr/yandex-calendar-mcp yandex-calendar-mcp serve
+```
+
+**Из локальной сборки.** Собранный `.whl` ставится как инструмент `uv`; исполняемый файл появляется в `~/.local/bin/`:
+
+```sh
+uv build
+uv tool install --force dist/*.whl
+yandex-calendar-mcp --help
+```
+
+В регистрации клиента укажите команду `yandex-calendar-mcp` (или абсолютный путь к `~/.local/bin/yandex-calendar-mcp`) с аргументом `serve` и переменной `YANDEX_CALENDAR_CONFIG`.
+
+### Где лежит конфиг
+
+Файл настроек (формат — `config.example.json`) читается по пути из `YANDEX_CALENDAR_CONFIG`, а без неё — из `config.local.json` в текущей папке. Для установленного пакета держите его вне репозитория, в каталоге данных пользователя, и ограничьте права:
+
+| ОС | Рекомендуемое место |
+| --- | --- |
+| macOS | `~/Library/Application Support/YandexCalendarMCP/config.json` |
+| Linux | `~/.config/yandex-calendar-mcp/config.json` |
+
+```sh
+mkdir -p ~/.config/yandex-calendar-mcp && chmod 700 ~/.config/yandex-calendar-mcp
+chmod 600 ~/.config/yandex-calendar-mcp/config.json
+```
+
+Каталог для файла нужно создать заранее: `credentials` сам его не создаёт. Рядом с конфигом сервер сохраняет `.calendar-trash` (см. «Как работает запись»). Пароль в конфиг не попадает, он хранится в системном хранилище секретов.
+
+### Обновление
+
+После изменения кода или выхода новой версии:
+
+```sh
+git pull
+uv build
+uv tool install --force dist/*.whl
+```
+
+Затем перезапустите MCP-клиент или сессию: уже запущенный процесс продолжает работать со старой версией. Конфиг и пароль в хранилище при обновлении не меняются. Для `uvx` обновление запрашивается так: `uvx --refresh --from git+https://github.com/architawr/yandex-calendar-mcp yandex-calendar-mcp --help`; закреплённую на тег версию меняйте в команде регистрации.
+
 ## Подключение к Codex
 
 Из корня проекта:
@@ -71,6 +129,8 @@ claude mcp get yandex-calendar
 ```
 
 Сохраняйте остальные настройки и правила. Не разрешайте все инструменты сервера автоматически, если запись должна требовать подтверждения. В BB поведение диалога также зависит от режима разрешений провайдера. Режим обхода подтверждений не входит в проверенный сценарий.
+
+Если сервер установлен как пакет (см. «Установка как пакета»), вместо `"$PWD/scripts/run.sh"` в обеих регистрациях укажите `yandex-calendar-mcp serve` и передайте `YANDEX_CALENDAR_CONFIG`.
 
 После установки или изменения настроек перезапустите MCP/сессию клиента. Шаблон для других клиентов — `mcp.example.json`.
 
